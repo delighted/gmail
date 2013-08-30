@@ -1,3 +1,5 @@
+>**NOTES**: In addition to being fixed to work with Ruby 2.0, this fork has a few patches applied to include some [custom Gmail IMAP attributes](https://developers.google.com/gmail/imap_extensions). Specifically, it includes accessors for `X-GM-MSGID` and `X-GM-THRID` on `Message` instances. It also does a more aggresive fetch (i.e. includes more in one request) when getting message data from the server. That strategy may or may not suit your use case. It suited mine :)
+
 # GMail for Ruby
 
 A Rubyesque interface to Google's GMail, with all the tools you'll need. Search, 
