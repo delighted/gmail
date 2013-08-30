@@ -2,18 +2,18 @@
 
 module GmailImapExtensions
 
-  def self.patch_net_imap_response_parser(klass = Net::IMAP::ResponseParser)
-    klass.class_eval do
+  def self.patch_net_imap_response_parser
+    Net::IMAP::ResponseParser.class_eval do
       def msg_att(n)
-        match(T_LPAR)
+        match(Net::IMAP::ResponseParser::T_LPAR)
         attr = {}
         while true
           token = lookahead
           case token.symbol
-          when T_RPAR
+          when Net::IMAP::ResponseParser::T_RPAR
             shift_token
             break
-          when T_SPACE
+          when Net::IMAP::ResponseParser::T_SPACE
             shift_token
             next
           end
@@ -48,6 +48,7 @@ module GmailImapExtensions
           attr[name] = val
         end
         return attr
+      end
     end
   end
 
