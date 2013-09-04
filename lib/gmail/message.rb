@@ -18,7 +18,7 @@ module Gmail
     #   https://developers.google.com/google-apps/gmail/imap_extensions#access_to_the_gmail_thread_id_x-gm-thrid
     #
     def labels
-      fetch_email_data.attr["X-GM-LABELS"]
+      fetch_email_envelope.attr["X-GM-LABELS"]
     end
     
     ###
@@ -26,15 +26,15 @@ module Gmail
     #   https://developers.google.com/google-apps/gmail/imap_extensions#access_to_the_gmail_thread_id_x-gm-thrid
     #
     def thread_id
-      fetch_email_data.attr["X-GM-THRID"]
+      fetch_email_envelope.attr["X-GM-THRID"]
     end
 
     def msg_id
-      fetch_email_data.attr["X-GM-MSGID"]
+      fetch_email_envelope.attr["X-GM-MSGID"]
     end
    
     def uid
-      @uid ||= fetch_email_data.attr("UID")
+      @uid ||= fetch_email_envelope.attr["UID"]
     end
     
     # Mark message with given flag.
@@ -169,21 +169,25 @@ module Gmail
 
     def envelope
       @envelope ||= @gmail.mailbox(@mailbox.name) {
-        fetch_email_data.attr["ENVELOPE"]
+        fetch_email_envelope.attr["ENVELOPE"]
       }
     end
     
     def message
       @message ||= Mail.new(@gmail.mailbox(@mailbox.name) { 
-        fetch_email_data.attr["RFC822"] # RFC822
+        fetch_email_body.attr["RFC822"] # RFC822
       })
     end
     alias_method :raw_message, :message
 
     protected 
-    # Just one request to fetch all the data we need
-    def fetch_email_data
-      @email_data ||= @gmail.conn.uid_fetch(uid, ["RFC822", 'ENVELOPE', 'X-GM-LABELS', 'X-GM-THRID', 'X-GM-MSGID'])[0]
+
+    def fetch_email_envelope
+      @email_envelope_data ||= @gmail.conn.uid_fetch(uid, ['ENVELOPE', 'X-GM-LABELS', 'X-GM-THRID', 'X-GM-MSGID'])[0]
+    end
+
+    def fetch_email_body
+      @email_body_data ||= @gmail.conn.uid_fetch(uid, ['RFC822]'])[0]
     end
   end # Message
 end # Gmail
