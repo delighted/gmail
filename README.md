@@ -1,4 +1,4 @@
->**NOTES**: In addition to being fixed to work with Ruby 2.0, this fork has a few patches applied to include some [custom Gmail IMAP attributes](https://developers.google.com/gmail/imap_extensions). Specifically, it includes accessors for `X-GM-MSGID` and `X-GM-THRID` on `Message` instances.
+>**NOTES**: In addition to being fixed to work with Ruby 2.0 and Mime > 0.1, this fork has a few patches applied to include some [custom Gmail IMAP attributes](https://developers.google.com/gmail/imap_extensions). Specifically, it includes accessors for `X-GM-MSGID` and `X-GM-THRID` on `Message` instances. It also optimizes loading strategy to reduce latency by batching operations and using smarter caching.
 >
 > Scope the diff for more details:
 > https://github.com/delighted/gmail/compare/nu7hatch:master...master

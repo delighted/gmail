@@ -60,7 +60,28 @@ module Gmail
         opts[:query]      and search.concat opts[:query]
 
         @gmail.mailbox(name) do
-          @gmail.conn.uid_search(search).collect do |uid| 
+          uids = @gmail.conn.uid_search(search)
+
+          if opts[:batch_load]
+            uids_to_load = uids - messages.keys
+
+            unless uids_to_load.empty?
+              Message.fetch(@gmail, uids_to_load, opts[:batch_load]).each do |raw|
+                uid = raw.attr['UID']
+
+                data = case opts[:batch_load]
+                when :all then { envelope: raw, rfc822: raw }
+                when :rfc822 then { rfc822: raw }
+                when :envelope then { envelope: raw }
+                else {}
+                end
+
+                messages[uid] = Message.new(self, uid, data)
+              end
+            end
+          end
+
+          uids.collect do |uid|
             message = (messages[uid] ||= Message.new(self, uid))
             block.call(message) if block_given?
             message

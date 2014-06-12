@@ -1,16 +1,20 @@
-require 'mime/message'
+require 'mime/mail'
 
 module Gmail
   class Message
+    ENVELOPE_FIELDS = ['ENVELOPE', 'X-GM-LABELS', 'X-GM-THRID', 'X-GM-MSGID', 'UID']
+    RFC822_FIELDS = ['RFC822', 'UID']
+
     # Raised when given label doesn't exists.
     class NoLabelError < Exception; end 
   
     attr_reader :uid
     
-    def initialize(mailbox, uid)
+    def initialize(mailbox, uid, data = {})
       @uid     = uid
       @mailbox = mailbox
       @gmail   = mailbox.instance_variable_get("@gmail") if mailbox
+      @data    = data
     end
     
     ###
@@ -18,7 +22,7 @@ module Gmail
     #   https://developers.google.com/google-apps/gmail/imap_extensions#access_to_the_gmail_thread_id_x-gm-thrid
     #
     def labels
-      fetch_email_envelope.attr["X-GM-LABELS"]
+      fetch_envelope.attr["X-GM-LABELS"]
     end
     
     ###
@@ -26,15 +30,11 @@ module Gmail
     #   https://developers.google.com/google-apps/gmail/imap_extensions#access_to_the_gmail_thread_id_x-gm-thrid
     #
     def thread_id
-      fetch_email_envelope.attr["X-GM-THRID"]
+      fetch_envelope.attr["X-GM-THRID"]
     end
 
     def msg_id
-      fetch_email_envelope.attr["X-GM-MSGID"]
-    end
-   
-    def uid
-      @uid ||= fetch_email_envelope.attr["UID"]
+      fetch_envelope.attr["X-GM-MSGID"]
     end
     
     # Mark message with given flag.
@@ -168,26 +168,33 @@ module Gmail
     end
 
     def envelope
-      @envelope ||= @gmail.mailbox(@mailbox.name) {
-        fetch_email_envelope.attr["ENVELOPE"]
-      }
+      @envelope ||= fetch_envelope.attr["ENVELOPE"]
     end
-    
+
     def message
-      @message ||= Mail.new(@gmail.mailbox(@mailbox.name) { 
-        fetch_email_body.attr["RFC822"] # RFC822
-      })
+      @message ||= Mail.new(fetch_rfc822.attr["RFC822"])
     end
     alias_method :raw_message, :message
 
-    protected 
+    def self.fetch(gmail, uids, fields)
+      attrs = case fields
+      when :envelope then ENVELOPE_FIELDS
+      when :rfc822 then RFC822_FIELDS
+      when :all then ENVELOPE_FIELDS + RFC822_FIELDS
+      else fields
+      end
 
-    def fetch_email_envelope
-      @email_envelope_data ||= @gmail.conn.uid_fetch(uid, ['ENVELOPE', 'X-GM-LABELS', 'X-GM-THRID', 'X-GM-MSGID'])[0]
+      gmail.conn.uid_fetch(uids, attrs)
     end
 
-    def fetch_email_body
-      @email_body_data ||= @gmail.conn.uid_fetch(uid, ['RFC822]'])[0]
+    protected 
+
+    def fetch_envelope
+      @data[:envelope] ||= @gmail.mailbox(@mailbox.name) { self.class.fetch(@gmail, [uid], :envelope)[0] }
+    end
+
+    def fetch_rfc822
+      @data[:rfc822] ||= @gmail.mailbox(@mailbox.name) { self.class.fetch(@gmail, [uid], :rfc822)[0] }
     end
   end # Message
 end # Gmail
